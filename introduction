@@ -1,0 +1,57 @@
+几个技术名词的简单介绍：
+
+ 
+
+    主机(host)：CPU及其内存(host memory)。
+    设备(device)：GPU及其内存(device memory)。
+    主机代码(host code)：运行在CPU上的（一般来说「串行执行」的）代码。
+    设备代码(device code)：运行在GPU上的并行执行的代码。
+    异构计算：由主机代码(host code)和设备代码(device code)协同执行完成的计算。
+
+宏观上看，GPU执行代码的流程如下：
+
+ 
+
+ 
+
+    将输入数据通过PCI总线从CPU内存拷贝到GPU的DRAM中。
+    从内存中加载需要执行的代码到GPU后。
+    数据和指令都就绪后，就可以执行了。注意，在执行的过程中，GPU会在片上缓存数据以提升性能。
+    计算完毕后，将结果从GPU的DRAM中拷回CPU的Memory中。
+
+
+关于kernel：
+
+    调用kernel时需要三个尖括号
+    包含必要的头文件
+
+CUDA C/C++中引入的新关键字__global__所修饰的函数有以下两方面含义：
+
+    此函数代码由设备执行
+    此函数由主机代码调用
+
+nvcc将源代码分为设备函数和主机函数两大类：
+
+    设备函数由NVIDA编译器编译
+    主机函数由主机上配置的编译器编译
+
+三个尖括号标志着一个从主机代码调用设备代码的函数，称为“启动内核”(kernel launch)
+
+在使用global类型函数时，cpu与gpu之间数据的基本传递方法：
+CUDA API提供的用于处理设备内存的函数有cudaMalloc, cudaFree, cudaMemcpy。语义上分别对应于C语言的malloc, free, memcpy函数。（在向量计算sample中有用到）
+
+
+GPU是用来实现大规模并行的，如果我们要实现两个向量相加：
+add<<<1,1>>>() ---> add<<<N,1>>>
+N表示同时调用N次add函数，这样就可以实现并行的向量相加了。1代表每个grid中只有一个thread运行。
+每个被并行调用的add函数称之为一个块(block)。
+
+    块的集合称之为网格(grid).
+    每个块可以使用索引值blockIdx.x
+    每个块中的具体线程号使用索引值threadIdx.x
+
+通过使用blockIdx.x作为索引，每个块可以处理数组元素中的一部分。
+
+
+
+
