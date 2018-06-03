@@ -1,0 +1,94 @@
+完成功能
+输入数组in和输出数组out. 一共有n个元素，将in中的值映射到out，映射的规则是：
+对于任意的i，out[i] = out[ i - radius ] + out[ i - radius + 1] + out[i-radius+2] + ... + out[i+radius].
+
+
+共享内存(shared memory)：
+
+    在同一个块内线程通过共享内存实现数据共享或者说在同一个块内，线程通过共享内存实现线程间的通信
+    硬件上看，共享内存是速度极高的片上内存。而设备内存，又称之为全局内存(global memory)的速度较慢
+    可以将共享内存看做是用户管理的cache
+    使用关键字__shared__定义的存储空间将在共享内存上为每个块开辟空间
+    一个块内的共享内存数据对另外一个块的线程来说是不可见的
+    
+对每一个块来说:
+
+    需要读入2 * radius + blockDim.x 个元素的数据。
+    输出blockDim.x个元素数据到全局内存中.
+&&
+CUDA提供了__syncthreads函数来进行数据同步，这样就可以保证所有的数据都就绪后再开始进行计算。
+
+
+
+源代码：
+#include<stdio.h>
+#include<stdlib.h>
+#include<cuda.h>
+#include<time.h>
+
+#define N 20
+
+#define RADIUS 2
+#define BLOCK_SIZE 32
+
+__global__ void stencil_1d(int * in, int *out)
+{
+__shared__ int temp[BLOCK_SIZE + 2 * RADIUS];
+int g_index = threadIdx.x + blockIdx.x * blockDim.x + RADIUS;
+int s_index = threadIdx.x + RADIUS;
+temp[s_index] = in[g_index];
+if(threadIdx.x < RADIUS) {
+temp[s_index - RADIUS] = in[g_index - RADIUS];
+temp[s_index + BLOCK_SIZE] = in[g_index + BLOCK_SIZE];
+}
+__syncthreads();
+int result = 0;
+for(int offset = -RADIUS; offset <= RADIUS; offset++) {
+result = result + temp[s_index+offset];
+}
+out[g_index-RADIUS] = result;
+}
+
+void rand_ints(int * arr, int count) {
+srand(time(NULL));
+for(int i=0;i<count;i++) {
+arr[i] = rand() % 100;
+}
+}
+
+int main(void) {
+int * in, * out;
+
+int size_in = sizeof(int) * ( N + 2 * RADIUS );
+in = (int *) malloc(size_in);
+rand_ints(in+RADIUS,N);
+
+int size_out = sizeof(int) * N;
+out = (int *) malloc(size_out);
+
+int * d_in, * d_out;
+cudaMalloc((void**)&d_in,size_in);
+cudaMalloc((void**)&d_out,size_out);
+cudaMemcpy(d_in,in,size_in,cudaMemcpyHostToDevice);
+stencil_1d<<<(N+BLOCK_SIZE-1)/BLOCK_SIZE,BLOCK_SIZE>>>(d_in,d_out);
+cudaMemcpy(out,d_out,size_out,cudaMemcpyDeviceToHost);
+
+#if 1
+for(int i=0;i<N+2*RADIUS;i++) {
+printf("%-5d \n",in[i]);
+}
+printf("*****************************************");
+for(int i=0;i<N;i++) {
+printf("%-5d \n",out[i]);
+}
+printf("\n");
+#endif
+
+cudaFree(d_in);
+cudaFree(d_out);
+
+free(in);
+free(out);
+
+return 0;
+}
