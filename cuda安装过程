@@ -1,0 +1,71 @@
+1.安装nvdia驱动
+  在下载cuda是会有安装驱动的附加选项，但我在实际安装中发现驱动并没有安装成功，故驱动单独安装。
+  
+  首先去nvdia驱动下载官网(https://www.nvidia.com/Download/index.aspx?lang=en-us)根据计算机显卡的型号查看对应的驱动版本
+  执行下命令来安装gpu driver
+  
+    sudo add-apt-repository ppa:graphics-drivers/ppa
+    sudo apt-get update
+    sudo apt-get install nvidia-367   （根据之前查到的版本号而定）
+    sudo apt-get install mesa-common-dev
+    sudo apt-get install freeglut3-dev
+    
+  执行完上述后，重启：  sudo reboot
+  
+  输入： nvidia-smi  
+  如果出现了你的GPU列表，则说明驱动安装成功了。
+  Sun Jun  3 22:05:25 2018       
++-----------------------------------------------------------------------------+
+| NVIDIA-SMI 390.48                 Driver Version: 390.48                    |
+|-------------------------------+----------------------+----------------------+
+| GPU  Name        Persistence-M| Bus-Id        Disp.A | Volatile Uncorr. ECC |
+| Fan  Temp  Perf  Pwr:Usage/Cap|         Memory-Usage | GPU-Util  Compute M. |
+|===============================+======================+======================|
+|   0  GeForce GTX 980M    Off  | 00000000:01:00.0 Off |                  N/A |
+| N/A   59C    P5    12W /  N/A |    199MiB /  4043MiB |      0%      Default |
++-------------------------------+----------------------+----------------------+
+                                                                               
++-----------------------------------------------------------------------------+
+| Processes:                                                       GPU Memory |
+|  GPU       PID   Type   Process name                             Usage      |
+|=============================================================================|
+|    0      1062      G   /usr/lib/xorg/Xorg                           116MiB |
+|    0      2283      G   compiz                                        68MiB |
+|    0      2324      G   fcitx-qimpanel                                10MiB |
++-----------------------------------------------------------------------------+
+
+
+  2、安装CUDA
+     进入官网下载   https://developer.nvidia.com/cuda-downloads
+     依次选择 Linux  x86_64  Ubuntu  16.04  runfile(local)  下载cuda_9.2.88_396.26_linux.run
+     
+     CUDA官方安装指南，用于随时查阅
+     https://docs.nvidia.com/cuda/cuda-installation-guide-linux/#axzz4HIBXnwyt
+     
+     运行run文件
+     sudo sh cuda_9.2.88_396.26_linux.run
+     
+     因为驱动之前已经安装，这里就不要选择安装驱动。看网上其他人安装时选择安装OpenGL后会有黑屏情况，故我选择了不安装OpenGL
+     其余的都直接默认或者选择是即可。 
+     
+     进入/etc/profile路径，打开profile文件，可能要改一下权限才能添加内容 (具体path根据cuda版本不同可能有细微差异)
+     export PATH=/usr/local/cuda-9.1/bin:$PATH
+     export LD_LIBRARY_PATH=/usr/local/cuda-9.1/lib64$LD_LIBRARY_PATH
+     
+     重启 sudo reboot
+     
+   3、测试cuda的Samples
+   
+     cd /usr/local/cuda-9.1/samples/1_Utilities/deviceQuery
+     sudo make
+     ./deviceQuery 
+     
+     如果显示的是一些关于GPU的信息，则说明安装成功了。
+     
+   4、关于编译
+     sample文件中都是有Makefile文件的，我在编译一些基础的cuda程序，例如 hello_cuda.cu 时，简单的使用命令
+     nvcc hello_cuda.cu -o hello_cuda.out
+     即可，之后运行程序
+     ./hello_cuda.out
+     即可显示hello cuda
+     
