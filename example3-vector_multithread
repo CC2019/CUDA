@@ -1,0 +1,67 @@
+//采用多block多thread的方法进行向量运算
+
+
+
+#include "cuda_runtime.h"
+#include "device_launch_parameters.h"
+#include <stdio.h>
+
+#define N 1024
+
+__global__ void kernel(int *a, int *b, int *c)
+{
+    int i = threadIdx.x;
+    c[i] = a[i] = b[i];
+}
+
+void genData(int *d)
+{
+    for(int i = 0; i < N; i++)
+    {
+        d[i] = rand()%10;
+    }
+}
+
+int main()
+{
+    //内存分配空间，并赋值
+    int *a, *b, *c;
+    int size = sizeof(int)*N;
+    a = (int *)malloc(size);
+    b = (int *)malloc(size);
+    c = (int *)malloc(size);
+    genData(a);
+    genData(b);
+
+    //显存分配空间，然后把内存空间中的数据拷贝到显存
+    int *d_a, *d_b, *d_c;
+    cudaMalloc((void **)&d_a, size);
+    cudaMalloc((void **)&d_b, size);
+    cudaMalloc((void **)&d_c, size);
+
+    cudaMemcpy(d_a, a, size, cudaMemcpyHostToDevice);
+    cudaMemcpy(d_b, b, size, cudaMemcpyHostToDevice);
+
+    //制定GPU中用到多少个block，每个block有多少个threads
+    int blocksPerGrid = 1;
+    int threadsPerBlock = N;
+    //执行核函数，每个threads都有一份核函数的拷贝
+    kernel<<<blocksPerGrid, threadsPerBlock>>>(d_a, d_b, d_c);
+
+    //执行完成后把显存中的数据拷贝回内存
+    cudaMemcpy(c, d_c, size, cudaMemcpyDeviceToHost);
+
+    for(int i = 0; i < N; i++)
+    {
+        printf("%d ", c[i]);
+    }
+
+
+    //释放存储空间
+    free(a);
+    free(b);
+    free(c);
+    cudaFree(d_a);
+    cudaFree(d_b);
+    cudaFree(d_c);
+}
